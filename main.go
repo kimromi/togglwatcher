@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/urfave/cli"
@@ -16,16 +19,38 @@ func main() {
 	app.Name = "togglwatcher"
 	app.Version = "0.1.0"
 
-	app.Action = func(c *cli.Context) error {
-		dashboard := FetchDashboard()
-
-		// iroiro
-		fmt.Println(dashboard)
-
-		return nil
+	app.Action = func(c *cli.Context) {
+		Watch()
 	}
 
 	app.Run(os.Args)
+}
+
+func Watch() {
+	t := time.NewTicker(10 * time.Second)
+	defer t.Stop()
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+	)
+	defer signal.Stop(sig)
+
+	for {
+		select {
+		case <-t.C:
+			dashboard := FetchDashboard()
+			fmt.Println(dashboard)
+		case s := <-sig:
+			switch s {
+			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+				return
+			}
+		}
+	}
 }
 
 type Config struct {
