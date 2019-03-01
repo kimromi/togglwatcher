@@ -3,13 +3,16 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
-	"github.com/BurntSushi/toml"
+	yaml "gopkg.in/yaml.v2"
+
 	"github.com/urfave/cli"
 )
 
@@ -27,7 +30,8 @@ func main() {
 }
 
 func Watch() {
-	t := time.NewTicker(10 * time.Second)
+	interval := 5
+	t := time.NewTicker(time.Duration(interval) * time.Second)
 	defer t.Stop()
 
 	sig := make(chan os.Signal, 1)
@@ -39,11 +43,43 @@ func Watch() {
 	)
 	defer signal.Stop(sig)
 
+	currentActivities := map[int]Activity{}
+
 	for {
 		select {
 		case <-t.C:
 			dashboard := FetchDashboard()
-			fmt.Println(dashboard)
+
+			for _, activity := range dashboard.LatestActivities() {
+				currentActivity, exist := currentActivities[activity.UserID]
+				if !exist {
+					currentActivities[activity.UserID] = activity
+					continue
+				}
+
+				// Stop
+				// current activity is running, and latest activity is stopped
+				if currentActivity.Stop == "" && activity.Stop != "" {
+					currentActivities[activity.UserID] = activity
+					fmt.Printf("%s stop %s.\n", UserName(activity.UserID), activity.Description)
+					continue
+				}
+
+				// Start
+				// start time is between now and last time check before
+				// now <------> start time <------> last time check before
+				now := time.Now()
+				t, _ := time.Parse("2006-01-02", "1970-01-01")
+				start := time.Unix(t.Unix()-activity.Duration, 0)
+				before := time.Now().Add(-time.Duration(float64(interval)*1.5) * time.Second)
+
+				if now.After(start) && start.After(before) {
+					currentActivities[activity.UserID] = activity
+					fmt.Printf("%s start %s.\n", UserName(activity.UserID), activity.Description)
+					continue
+				}
+			}
+
 		case s := <-sig:
 			switch s {
 			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
@@ -53,37 +89,79 @@ func Watch() {
 	}
 }
 
+func (d *Dashboard) LatestActivities() []Activity {
+	activities := make([]Activity, 0)
+
+	config := LoadConfig()
+	for _, user := range config.Users {
+		for _, activity := range d.Activities {
+			if user.Id == activity.UserID {
+				activities = append(activities, activity)
+				break
+			}
+		}
+	}
+	return activities
+}
+
+func UserName(UserID int) string {
+	config := LoadConfig()
+	for _, user := range config.Users {
+		if user.Id == UserID {
+			return user.Name
+		}
+	}
+	return strconv.Itoa(UserID)
+}
+
 type Config struct {
-	Api ApiConfig
+	Api   ApiConfig
+	Users []User `yaml:"users"`
 }
 
 type ApiConfig struct {
-	Token       string `toml:"token"`
-	WorkspaceId int    `toml:"workspaceid"`
+	Token       string `yaml:"token"`
+	WorkspaceId int    `yaml:"workspaceid"`
+}
+
+type User struct {
+	Id   int    `yaml:"id"`
+	Name string `yaml:"name"`
 }
 
 func LoadConfig() Config {
-	var config Config
-	_, err := toml.DecodeFile("config.toml", &config)
+	config := Config{}
+
+	buf, err := ioutil.ReadFile("./config.yaml")
 	if err != nil {
 		panic(err)
 	}
+
+	err = yaml.Unmarshal(buf, &config)
+	if err != nil {
+		panic(err)
+	}
+
 	return config
 }
 
 type Dashboard struct {
-	MostActiveUser []struct {
-		UserID   int `json:"user_id"`
-		Duration int `json:"duration"`
-	} `json:"most_active_user"`
-	Activity []struct {
-		UserID      int         `json:"user_id"`
-		ProjectID   int         `json:"project_id"`
-		Duration    int         `json:"duration"`
-		Description string      `json:"description"`
-		Stop        interface{} `json:"stop"`
-		Tid         interface{} `json:"tid"`
-	} `json:"activity"`
+	MostActiveUsers []MostActiveUser `json:"most_active_user"`
+	Activities      []Activity       `json:"activity"`
+}
+
+type MostActiveUser struct {
+	UserID   int `json:"user_id"`
+	Duration int `json:"duration"`
+}
+
+type Activity struct {
+	UserID      int    `json:"user_id"`
+	ProjectID   int    `json:"project_id"`
+	Duration    int64  `json:"duration"`
+	Description string `json:"description"`
+	Stop        string `json:"stop"`
+	Tid         int    `json:"tid"`
 }
 
 func FetchDashboard() Dashboard {

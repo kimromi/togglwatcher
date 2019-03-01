@@ -1,0 +1,6 @@
+api:
+  token: dummy
+  workspaceid: 1234567
+users:
+  - id: 8901234
+    name: kimromi
