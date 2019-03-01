@@ -121,7 +121,7 @@ type Config struct {
 
 type ApiConfig struct {
 	Token       string `yaml:"token"`
-	WorkspaceId int    `yaml:"workspaceid"`
+	DashboardId int    `yaml:"dashboardid"`
 }
 
 type User struct {
@@ -168,7 +168,7 @@ func FetchDashboard() Dashboard {
 	config := LoadConfig()
 
 	client := &http.Client{}
-	endpoint := fmt.Sprintf("%s%d", "https://www.toggl.com/api/v8/dashboard/", config.Api.WorkspaceId)
+	endpoint := fmt.Sprintf("%s%d", "https://www.toggl.com/api/v8/dashboard/", config.Api.DashboardId)
 	request, err := http.NewRequest("GET", endpoint, nil)
 	request.SetBasicAuth(config.Api.Token, "api_token")
 	request.Header.Add("Content-Type", "application/json")
