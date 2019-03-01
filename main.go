@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -60,7 +61,7 @@ func Watch() {
 				// current activity is running, and latest activity is stopped
 				if currentActivity.Stop == "" && activity.Stop != "" {
 					currentActivities[activity.UserID] = activity
-					fmt.Printf("%d stop!!!!\n", activity.UserID)
+					fmt.Printf("%s stop %s.\n", UserName(activity.UserID), activity.Description)
 					continue
 				}
 
@@ -74,7 +75,7 @@ func Watch() {
 
 				if now.After(start) && start.After(before) {
 					currentActivities[activity.UserID] = activity
-					fmt.Printf("%d start!!!!\n", activity.UserID)
+					fmt.Printf("%s start %s.\n", UserName(activity.UserID), activity.Description)
 					continue
 				}
 			}
@@ -101,6 +102,16 @@ func (d *Dashboard) LatestActivities() []Activity {
 		}
 	}
 	return activities
+}
+
+func UserName(UserID int) string {
+	config := LoadConfig()
+	for _, user := range config.Users {
+		if user.Id == UserID {
+			return user.Name
+		}
+	}
+	return strconv.Itoa(UserID)
 }
 
 type Config struct {
