@@ -1,14 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
-	"./config"
+	"./notifier"
 	"./toggl"
 	"github.com/urfave/cli"
 )
@@ -58,7 +56,11 @@ func Watch() {
 				// current activity is running, and latest activity is stopped
 				if currentActivity.Stop == "" && activity.Stop != "" {
 					currentActivities[activity.UserID] = activity
-					fmt.Printf("%s stop %s.\n", UserName(activity.UserID), activity.Description)
+					notifier.Notify(notifier.Information{
+						Status:      "stopped",
+						UserID:      activity.UserID,
+						Description: activity.Description,
+					})
 					continue
 				}
 
@@ -72,7 +74,11 @@ func Watch() {
 
 				if now.After(start) && start.After(before) {
 					currentActivities[activity.UserID] = activity
-					fmt.Printf("%s start %s.\n", UserName(activity.UserID), activity.Description)
+					notifier.Notify(notifier.Information{
+						Status:      "started",
+						UserID:      activity.UserID,
+						Description: activity.Description,
+					})
 					continue
 				}
 			}
@@ -84,14 +90,4 @@ func Watch() {
 			}
 		}
 	}
-}
-
-func UserName(UserID int) string {
-	c := config.LoadConfig()
-	for _, user := range c.Users {
-		if user.Id == UserID {
-			return user.Name
-		}
-	}
-	return strconv.Itoa(UserID)
 }
