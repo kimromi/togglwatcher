@@ -1,18 +1,15 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
-
+	"./config"
+	"./toggl"
 	"github.com/urfave/cli"
 )
 
@@ -43,12 +40,12 @@ func Watch() {
 	)
 	defer signal.Stop(sig)
 
-	currentActivities := map[int]Activity{}
+	currentActivities := map[int]toggl.Activity{}
 
 	for {
 		select {
 		case <-t.C:
-			dashboard := FetchDashboard()
+			dashboard := toggl.FetchDashboard()
 
 			for _, activity := range dashboard.LatestActivities() {
 				currentActivity, exist := currentActivities[activity.UserID]
@@ -89,100 +86,12 @@ func Watch() {
 	}
 }
 
-func (d *Dashboard) LatestActivities() []Activity {
-	activities := make([]Activity, 0)
-
-	config := LoadConfig()
-	for _, user := range config.Users {
-		for _, activity := range d.Activities {
-			if user.Id == activity.UserID {
-				activities = append(activities, activity)
-				break
-			}
-		}
-	}
-	return activities
-}
-
 func UserName(UserID int) string {
-	config := LoadConfig()
-	for _, user := range config.Users {
+	c := config.LoadConfig()
+	for _, user := range c.Users {
 		if user.Id == UserID {
 			return user.Name
 		}
 	}
 	return strconv.Itoa(UserID)
-}
-
-type Config struct {
-	Api   ApiConfig
-	Users []User `yaml:"users"`
-}
-
-type ApiConfig struct {
-	Token       string `yaml:"token"`
-	DashboardId int    `yaml:"dashboardid"`
-}
-
-type User struct {
-	Id   int    `yaml:"id"`
-	Name string `yaml:"name"`
-}
-
-func LoadConfig() Config {
-	config := Config{}
-
-	buf, err := ioutil.ReadFile("./config.yaml")
-	if err != nil {
-		panic(err)
-	}
-
-	err = yaml.Unmarshal(buf, &config)
-	if err != nil {
-		panic(err)
-	}
-
-	return config
-}
-
-type Dashboard struct {
-	MostActiveUsers []MostActiveUser `json:"most_active_user"`
-	Activities      []Activity       `json:"activity"`
-}
-
-type MostActiveUser struct {
-	UserID   int `json:"user_id"`
-	Duration int `json:"duration"`
-}
-
-type Activity struct {
-	UserID      int    `json:"user_id"`
-	ProjectID   int    `json:"project_id"`
-	Duration    int64  `json:"duration"`
-	Description string `json:"description"`
-	Stop        string `json:"stop"`
-	Tid         int    `json:"tid"`
-}
-
-func FetchDashboard() Dashboard {
-	config := LoadConfig()
-
-	client := &http.Client{}
-	endpoint := fmt.Sprintf("%s%d", "https://www.toggl.com/api/v8/dashboard/", config.Api.DashboardId)
-	request, err := http.NewRequest("GET", endpoint, nil)
-	request.SetBasicAuth(config.Api.Token, "api_token")
-	request.Header.Add("Content-Type", "application/json")
-
-	response, err := client.Do(request)
-	if err != nil {
-		panic(err)
-	}
-	defer response.Body.Close()
-
-	decoder := json.NewDecoder(response.Body)
-	var dashboard Dashboard
-	if err := decoder.Decode(&dashboard); err != nil {
-		panic(err)
-	}
-	return dashboard
 }
