@@ -1,6 +1,10 @@
 api:
   token: dummy
   dashboardid: 1234567
+notifications:
+  - service: slack
+    webhook_url: https://hooks.slack.com/services/xxx
+    channel: general
 users:
   - id: 8901234
     name: kimromi

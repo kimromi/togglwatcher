@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	Api   ApiConfig
-	Users []User `yaml:"users"`
+	Api           ApiConfig
+	Users         []User         `yaml:"users"`
+	Notifications []Notification `yaml:"notifications"`
 }
 
 type ApiConfig struct {
@@ -19,6 +20,13 @@ type ApiConfig struct {
 type User struct {
 	Id   int    `yaml:"id"`
 	Name string `yaml:"name"`
+}
+
+type Notification struct {
+	Service string `yaml:"service"`
+	Url     string `yaml:"webhook_url"`
+	Channel string `yaml:"channel"`
+	Name    string `yaml:"name"`
 }
 
 func LoadConfig() Config {
