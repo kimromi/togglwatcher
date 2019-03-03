@@ -8,10 +8,28 @@ import (
 )
 
 func NotifySlack(config config.Notification, info Information) {
+
+	fields := make([]slack.AttachmentField, 0)
+	if info.Status == "stopped" {
+		start := slack.AttachmentField{
+			Title: "Started at",
+			Value: info.StartedAt,
+			Short: true,
+		}
+		fields = append(fields, start)
+		stop := slack.AttachmentField{
+			Title: "Stopped at",
+			Value: info.StoppedAt,
+			Short: true,
+		}
+		fields = append(fields, stop)
+	}
+
+	emoji := map[bool]string{true: ":running::dash:", false: ":tada:"}[info.Status == "started"]
 	attachment := slack.Attachment{
-		Color: "good",
-		Title: UserName(info.UserID),
-		Text:  fmt.Sprintf("%s `%s` :+1:\n", info.Status, info.Description),
+		Color:  "good",
+		Text:   fmt.Sprintf("%s %s `%s` %s\n", UserName(info.UserID), info.Status, info.Description, emoji),
+		Fields: fields,
 	}
 	msg := slack.WebhookMessage{
 		Username:    map[bool]string{true: config.Name, false: "TogglWatcher"}[config.Name != ""],

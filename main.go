@@ -6,6 +6,7 @@ import (
 	"syscall"
 	"time"
 
+	"./config"
 	"./notifier"
 	"./toggl"
 	"github.com/urfave/cli"
@@ -25,6 +26,8 @@ func main() {
 }
 
 func Watch() {
+	c := config.LoadConfig()
+
 	interval := 5
 	t := time.NewTicker(time.Duration(interval) * time.Second)
 	defer t.Stop()
@@ -39,6 +42,7 @@ func Watch() {
 	defer signal.Stop(sig)
 
 	currentActivities := map[int]toggl.Activity{}
+	zone, _ := time.LoadLocation(map[bool]string{true: c.Timezone, false: "UTC"}[c.Timezone != ""])
 
 	for {
 		select {
@@ -52,14 +56,22 @@ func Watch() {
 					continue
 				}
 
+				now := time.Now()
+
 				// Stop
 				// current activity is running, and latest activity is stopped
 				if currentActivity.Stop == "" && activity.Stop != "" {
 					currentActivities[activity.UserID] = activity
+
+					stoppedAt, _ := time.Parse(time.RFC3339, activity.Stop)
+					startedAt := stoppedAt.Add(-time.Duration(activity.Duration) * time.Second)
+
 					notifier.Notify(notifier.Information{
 						Status:      "stopped",
 						UserID:      activity.UserID,
 						Description: activity.Description,
+						StartedAt:   startedAt.In(zone).Format("1/2 15:04"),
+						StoppedAt:   stoppedAt.In(zone).Format("1/2 15:04"),
 					})
 					continue
 				}
@@ -67,17 +79,18 @@ func Watch() {
 				// Start
 				// start time is between now and last time check before
 				// now <------> start time <------> last time check before
-				now := time.Now()
 				t, _ := time.Parse("2006-01-02", "1970-01-01")
-				start := time.Unix(t.Unix()-activity.Duration, 0)
+				started := time.Unix(t.Unix()-activity.Duration, 0)
 				before := time.Now().Add(-time.Duration(float64(interval)*1.5) * time.Second)
 
-				if now.After(start) && start.After(before) {
+				if now.After(started) && started.After(before) {
 					currentActivities[activity.UserID] = activity
 					notifier.Notify(notifier.Information{
 						Status:      "started",
 						UserID:      activity.UserID,
 						Description: activity.Description,
+						StartedAt:   started.In(zone).Format("1/2 15:04"),
+						StoppedAt:   "-",
 					})
 					continue
 				}

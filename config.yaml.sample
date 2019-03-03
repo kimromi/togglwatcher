@@ -1,3 +1,4 @@
+timezone: Asia/Tokyo
 api:
   token: dummy
   dashboardid: 1234567
