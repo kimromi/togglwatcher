@@ -7,6 +7,7 @@ import (
 )
 
 type Config struct {
+	Timezone      string `yaml:"timezone"`
 	Api           ApiConfig
 	Users         []User         `yaml:"users"`
 	Notifications []Notification `yaml:"notifications"`

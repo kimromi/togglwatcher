@@ -10,6 +10,8 @@ type Information struct {
 	Status      string
 	UserID      int
 	Description string
+	StartedAt   string
+	StoppedAt   string
 }
 
 func Notify(info Information) {
