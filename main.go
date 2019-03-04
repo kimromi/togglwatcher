@@ -28,7 +28,7 @@ func main() {
 func Watch() {
 	c := config.LoadConfig()
 
-	interval := 5
+	interval := map[bool]int{true: c.Interval, false: 10}[c.Interval > 0]
 	t := time.NewTicker(time.Duration(interval) * time.Second)
 	defer t.Stop()
 
