@@ -1,12 +1,8 @@
-package notifier
+package main
 
-import (
-	"strconv"
+import "strconv"
 
-	"../config"
-)
-
-type Information struct {
+type NotifyInformation struct {
 	Status      string
 	UserID      int
 	Description string
@@ -14,8 +10,9 @@ type Information struct {
 	StoppedAt   string
 }
 
-func Notify(info Information) {
-	for _, n := range config.LoadConfig().Notifications {
+func Notify(info NotifyInformation) {
+	c, _ := LoadConfig()
+	for _, n := range c.Notifications {
 		switch n.Service {
 		case "slack":
 			NotifySlack(n, info)
@@ -24,7 +21,8 @@ func Notify(info Information) {
 }
 
 func UserName(UserID int) string {
-	for _, user := range config.LoadConfig().Users {
+	c, _ := LoadConfig()
+	for _, user := range c.Users {
 		if user.Id == UserID {
 			return user.Name
 		}

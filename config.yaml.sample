@@ -1,5 +1,6 @@
 timezone: Asia/Tokyo
 interval: 10
+logfile: ./togglwatcher.log
 api:
   token: dummy
   dashboardid: 1234567

@@ -1,16 +1,38 @@
 package main
 
 import (
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"./config"
-	"./notifier"
-	"./toggl"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
+
+var (
+	log = logrus.New()
+)
+
+func init() {
+	log.SetFormatter(&logrus.JSONFormatter{})
+
+	c, err := LoadConfig()
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+
+	logFile := map[bool]string{true: c.LogFile, false: "./togglwatcher.log"}[c.LogFile != ""]
+	file, err := os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE, 0755)
+	if err != nil {
+		log.Error("logFile opening failed")
+		os.Exit(1)
+	}
+	mw := io.MultiWriter(os.Stdout, file)
+	log.SetOutput(mw)
+}
 
 func main() {
 	app := cli.NewApp()
@@ -26,7 +48,7 @@ func main() {
 }
 
 func Watch() {
-	c := config.LoadConfig()
+	c, _ := LoadConfig()
 
 	interval := map[bool]int{true: c.Interval, false: 10}[c.Interval > 0]
 	t := time.NewTicker(time.Duration(interval) * time.Second)
@@ -41,13 +63,17 @@ func Watch() {
 	)
 	defer signal.Stop(sig)
 
-	currentActivities := map[int]toggl.Activity{}
+	currentActivities := map[int]Activity{}
 	zone, _ := time.LoadLocation(map[bool]string{true: c.Timezone, false: "UTC"}[c.Timezone != ""])
 
 	for {
 		select {
 		case <-t.C:
-			dashboard := toggl.FetchDashboard()
+			dashboard, err := FetchDashboard()
+			if err != nil {
+				log.Error("dashboard fetching failed")
+				continue
+			}
 
 			for _, activity := range dashboard.LatestActivities() {
 				currentActivity, exist := currentActivities[activity.UserID]
@@ -66,7 +92,7 @@ func Watch() {
 					stoppedAt, _ := time.Parse(time.RFC3339, activity.Stop)
 					startedAt := stoppedAt.Add(-time.Duration(activity.Duration) * time.Second)
 
-					notifier.Notify(notifier.Information{
+					Notify(NotifyInformation{
 						Status:      "stopped",
 						UserID:      activity.UserID,
 						Description: activity.Description,
@@ -85,7 +111,7 @@ func Watch() {
 
 				if now.After(started) && started.After(before) {
 					currentActivities[activity.UserID] = activity
-					notifier.Notify(notifier.Information{
+					Notify(NotifyInformation{
 						Status:      "started",
 						UserID:      activity.UserID,
 						Description: activity.Description,
@@ -99,6 +125,7 @@ func Watch() {
 		case s := <-sig:
 			switch s {
 			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+				log.Info("togglwatcher terminated")
 				return
 			}
 		}
