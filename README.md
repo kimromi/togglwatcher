@@ -6,6 +6,7 @@ Create `config.yaml`
 
 ```yaml
 timezone: Asia/Tokyo
+interval: 10
 api:
   token: <toggl API token>
   dashboardid: <Dashboard ID>
