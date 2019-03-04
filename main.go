@@ -9,7 +9,12 @@ import (
 	"./config"
 	"./notifier"
 	"./toggl"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+)
+
+var (
+	log = logrus.New()
 )
 
 func main() {
