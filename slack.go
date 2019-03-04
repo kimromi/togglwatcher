@@ -1,14 +1,12 @@
-package notifier
+package main
 
 import (
 	"fmt"
 
-	"../config"
 	"github.com/nlopes/slack"
 )
 
-func NotifySlack(config config.Notification, info Information) {
-
+func NotifySlack(config Notification, info NotifyInformation) {
 	fields := make([]slack.AttachmentField, 0)
 	if info.Status == "stopped" {
 		start := slack.AttachmentField{

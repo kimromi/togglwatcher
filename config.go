@@ -1,4 +1,4 @@
-package config
+package main
 
 import (
 	"io/ioutil"
@@ -8,7 +8,8 @@ import (
 
 type Config struct {
 	Timezone      string `yaml:"timezone"`
-	Interval      int `yaml:"interval"`
+	Interval      int    `yaml:"interval"`
+	LogFile       string `yaml:"logfile"`
 	Api           ApiConfig
 	Users         []User         `yaml:"users"`
 	Notifications []Notification `yaml:"notifications"`
@@ -31,18 +32,18 @@ type Notification struct {
 	Name    string `yaml:"name"`
 }
 
-func LoadConfig() Config {
+func LoadConfig() (*Config, error) {
 	config := Config{}
 
 	buf, err := ioutil.ReadFile("./config.yaml")
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	err = yaml.Unmarshal(buf, &config)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return config
+	return &config, nil
 }
