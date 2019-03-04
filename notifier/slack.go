@@ -32,7 +32,7 @@ func NotifySlack(config config.Notification, info Information) {
 		Fields: fields,
 	}
 	msg := slack.WebhookMessage{
-		Username:    map[bool]string{true: config.Name, false: "TogglWatcher"}[config.Name != ""],
+		Username:    map[bool]string{true: config.Name, false: "togglwatcher"}[config.Name != ""],
 		Channel:     config.Channel,
 		IconURL:     "https://toggl.com/common/images/share/favicon/favicon-32x32-664ade47fe47cfb253492cb043e3ffeb.png",
 		Attachments: []slack.Attachment{attachment},
