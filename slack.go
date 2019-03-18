@@ -26,7 +26,7 @@ func NotifySlack(config Notification, info NotifyInformation) {
 	emoji := map[bool]string{true: ":running::dash:", false: ":tada:"}[info.Status == "started"]
 	attachment := slack.Attachment{
 		Color:  "good",
-		Text:   fmt.Sprintf("%s %s `%s` %s\n", UserName(info.UserID), info.Status, info.Description, emoji),
+		Text:   fmt.Sprintf("%s %s `%s` %s\n", info.User.Name, info.Status, info.Description, emoji),
 		Fields: fields,
 	}
 	msg := slack.WebhookMessage{

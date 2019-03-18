@@ -63,6 +63,12 @@ func Watch() {
 	)
 	defer signal.Stop(sig)
 
+	users, err := FetchUsers()
+	if err != nil {
+		log.Error("users fetching failed")
+		os.Exit(1)
+	}
+
 	currentActivities := map[int]Activity{}
 	zone, _ := time.LoadLocation(map[bool]string{true: c.Timezone, false: "UTC"}[c.Timezone != ""])
 
@@ -75,7 +81,7 @@ func Watch() {
 				continue
 			}
 
-			for _, activity := range dashboard.LatestActivities() {
+			for _, activity := range dashboard.LatestActivities(users) {
 				currentActivity, exist := currentActivities[activity.UserID]
 				if !exist {
 					currentActivities[activity.UserID] = activity
@@ -94,7 +100,7 @@ func Watch() {
 
 					Notify(NotifyInformation{
 						Status:      "stopped",
-						UserID:      activity.UserID,
+						User:        users[activity.UserID],
 						Description: activity.Description,
 						StartedAt:   startedAt.In(zone).Format("1/2 15:04"),
 						StoppedAt:   stoppedAt.In(zone).Format("1/2 15:04"),
@@ -113,7 +119,7 @@ func Watch() {
 					currentActivities[activity.UserID] = activity
 					Notify(NotifyInformation{
 						Status:      "started",
-						UserID:      activity.UserID,
+						User:        users[activity.UserID],
 						Description: activity.Description,
 						StartedAt:   started.In(zone).Format("1/2 15:04"),
 						StoppedAt:   "-",
