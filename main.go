@@ -109,7 +109,7 @@ func Watch() {
 				started := time.Unix(t.Unix()-activity.Duration, 0)
 				before := time.Now().Add(-time.Duration(float64(interval)*1.5) * time.Second)
 
-				if now.After(started) && started.After(before) {
+				if now.After(started) && started.After(before) && currentActivity.Description != activity.Description {
 					currentActivities[activity.UserID] = activity
 					Notify(NotifyInformation{
 						Status:      "started",
