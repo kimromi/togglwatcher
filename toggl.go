@@ -6,6 +6,40 @@ import (
 	"net/http"
 )
 
+type User struct {
+	Id   int    `json:"id"`
+	Uid  int    `json:"uid"`
+	Name string `json:"name"`
+}
+
+func FetchUsers() (map[int]User, error) {
+	c, _ := LoadConfig()
+
+	client := &http.Client{}
+	endpoint := fmt.Sprintf("%s%d%s", "https://www.toggl.com/api/v8/workspaces/", c.Api.DashboardId, "/workspace_users")
+	request, err := http.NewRequest("GET", endpoint, nil)
+	request.SetBasicAuth(c.Api.Token, "api_token")
+	request.Header.Add("Content-Type", "application/json")
+
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	decoder := json.NewDecoder(response.Body)
+	var users []User
+	if err := decoder.Decode(&users); err != nil {
+		return nil, err
+	}
+
+	teamUsers := map[int]User{}
+	for _, user := range users {
+		teamUsers[user.Uid] = user
+	}
+	return teamUsers, nil
+}
+
 type Dashboard struct {
 	MostActiveUsers []MostActiveUser `json:"most_active_user"`
 	Activities      []Activity       `json:"activity"`
@@ -48,16 +82,13 @@ func FetchDashboard() (*Dashboard, error) {
 	return &dashboard, nil
 }
 
-func (d *Dashboard) LatestActivities() []Activity {
+func (d *Dashboard) LatestActivities(users map[int]User) []Activity {
 	activities := make([]Activity, 0)
 
-	c, _ := LoadConfig()
-	for _, user := range c.Users {
-		for _, activity := range d.Activities {
-			if user.Id == activity.UserID {
-				activities = append(activities, activity)
-				break
-			}
+	for _, activity := range d.Activities {
+		if _, exists := users[activity.UserID]; exists {
+			activities = append(activities, activity)
+			break
 		}
 	}
 	return activities

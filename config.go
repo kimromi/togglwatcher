@@ -11,18 +11,12 @@ type Config struct {
 	Interval      int    `yaml:"interval"`
 	LogFile       string `yaml:"logfile"`
 	Api           ApiConfig
-	Users         []User         `yaml:"users"`
 	Notifications []Notification `yaml:"notifications"`
 }
 
 type ApiConfig struct {
 	Token       string `yaml:"token"`
 	DashboardId int    `yaml:"dashboardid"`
-}
-
-type User struct {
-	Id   int    `yaml:"id"`
-	Name string `yaml:"name"`
 }
 
 type Notification struct {
