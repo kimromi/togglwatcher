@@ -1,3 +1,4 @@
-/config.yaml
+/config.yaml*
+/!config.yaml.sample
 /*.log
 /togglwatcher
