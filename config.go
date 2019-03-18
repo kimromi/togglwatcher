@@ -26,10 +26,14 @@ type Notification struct {
 	Name    string `yaml:"name"`
 }
 
-func LoadConfig() (*Config, error) {
+func LoadConfig(params ...string) (*Config, error) {
 	config := Config{}
+	file := "./config.yaml"
+	if len(params) > 0 {
+		file = params[0]
+	}
 
-	buf, err := ioutil.ReadFile("./config.yaml")
+	buf, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
