@@ -85,10 +85,12 @@ func FetchDashboard() (*Dashboard, error) {
 func (d *Dashboard) LatestActivities(users map[int]User) []Activity {
 	activities := make([]Activity, 0)
 
-	for _, activity := range d.Activities {
-		if _, exists := users[activity.UserID]; exists {
-			activities = append(activities, activity)
-			break
+	for _, user := range users {
+		for _, activity := range d.Activities {
+			if user.Uid == activity.UserID {
+				activities = append(activities, activity)
+				break
+			}
 		}
 	}
 	return activities
